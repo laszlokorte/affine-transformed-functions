@@ -203,11 +203,6 @@
 		white-space: nowrap;
 		align-items: center;
 	}
-
-	.checkbox-list > label {
-		cursor: pointer;
-	}
-
 	button {
 		cursor: pointer;
 	}
@@ -391,15 +386,15 @@
 	{#each layers as layer, l (layer.hue)}
 		{@const f = functions[layer.selectedFunction]}
 		{@const color = layerColor(layers, l)}		
-		{@const resLeft = Math.abs(maxVisible.x +layer.offset.x) / 2}
-		{@const resRight = Math.abs(-layer.offset.x - minVisible.x) / 2}
+		{@const resLeft = Math.abs(maxVisible.x +layer.offset.x*zoom) / 2}
+		{@const resRight = Math.abs(-layer.offset.x*zoom - minVisible.x) / 2}
 		<g pointer-events="none">
 			{#if f.fractionalB(layer.baseParam.integer, Math.sign(layer.scale.x))}
 
-			<polyline  stroke-width="3" points={segments(resLeft, layer.offset.x, maxVisible.x/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, Math.sign(layer.scale.x)) === undefined ? '' : `${x*zoom}, ${clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y)}`).join(" ")} stroke={color} fill="none"/>	
+			<polyline  stroke-width="3" points={segments(resRight, layer.offset.x, maxVisible.x/zoom + 10).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, Math.sign(layer.scale.x)) === undefined ? '' : `${x*zoom}, ${clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y)}`).join(" ")} stroke={color} fill="none"/>	
 				{/if}
 				{#if f.fractionalB(layer.baseParam.integer, -1*Math.sign(layer.scale.x))}
-					<polyline  stroke-width="3" points={segments(resRight, layer.offset.x, minVisible.x/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, -Math.sign(layer.scale.x)) === undefined ? '' : `${x*zoom}, ${clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, -Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y)}`).join(" ")} stroke={color} fill="none"/>
+					<polyline  stroke-width="3" points={segments(resLeft, layer.offset.x, minVisible.x/zoom - 10).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, -Math.sign(layer.scale.x)) === undefined ? '' : `${x*zoom}, ${clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, -Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y)}`).join(" ")} stroke={color} fill="none"/>
 				{/if}
 		</g>
 		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 20} y={-layer.offset.y * zoom - 20} height="40" width="40" fill="none"></rect>
