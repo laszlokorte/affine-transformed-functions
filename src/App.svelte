@@ -611,7 +611,7 @@
 	{:else}
 		{@const resLeft = clamp(maxVisible.x +baseLayer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
 		{@const resRight = clamp(-baseLayer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
-		{@const segmentsLeft = segments(resLeft, baseLayer.offset.x, minVisible.x/zoom - 10)}
+		{@const segmentsLeft = segments(resLeft, baseLayer.offset.x, (minVisible.x - 10)/zoom )}
 		{@const segmentsRight = segments(resRight, baseLayer.offset.x, (maxVisible.x + 10)/zoom)}
 		{#each functions as f, fi}
 		{#if f.previewColor}
