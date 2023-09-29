@@ -24,6 +24,8 @@
 			get castValue() { return this.integer ? Math.round(this.value) : this.value }
 		},
 	}
+
+	let singleLayer = true
 	
 	
 	$: zoom = Math.exp(zoomFactor) * zoomBase
@@ -65,6 +67,11 @@
 		colors.push(layers[l].color)
 		colors = colors
 		layers = [...layers.slice(0, l), ...layers.slice(l+1)]
+	}
+
+	function removeAll(l) {
+		colors = [colors, ...layers.map(l=>l.color)]
+		layers = []
 	}
 
 	function addLayer() {
@@ -203,11 +210,16 @@
 		padding: 0;
 	}
 
+	h1 {
+		font-size: 1.4em;
+	}
+
 	.controls {
 		background: #fff;
 		padding: 1em;
 		width: 100%;
 		overflow: auto;
+		scrollbar-width: none;
 		border-right: 0.3em solid #eee;
 		box-sizing: border-box;
 	}
@@ -310,7 +322,7 @@
 
 	.big-button {
 		width: 100%;
-		padding: 1em 2em;
+		padding: 1em 1em;
 	}
 
 	.function-list {
@@ -330,6 +342,28 @@
 	summary {
 		cursor: pointer;
 	}
+
+	.tabs {
+		display: flex;
+		gap: 0.5em;
+		border-bottom: 2px solid black;
+		margin: 0 0 1em;
+	}
+
+	.tab {
+		background: none;
+		color: #000;
+		padding: 0.8em 0.5em 0.2em;
+		border: none;
+		flex-grow: 1;
+	}
+
+	.tab[disabled] {
+		background: black;
+		color: #fff;
+		margin: 0;
+		padding: 0.5em;
+	}
 </style>
 
 <div class="container">
@@ -337,13 +371,23 @@
 <div class="controls">
 	<h1>Affine Transformation <br>of Functions</h1>
 	
-	{#if !layers.length}
+
+
+	<div class="tabs">
+		<button disabled={singleLayer} class="tab" on:click={()=>singleLayer = true}>
+			All functions
+		</button>
+		<button disabled={!singleLayer} class="tab" on:click={()=>singleLayer = false}>
+			Selected functions
+		</button>
+	</div>
+
+	{#if singleLayer}
 	<div class="layer-box" style:--layer-color="#111">
 
 		<h3><span style:flex-grow="1">All Functions</span>
 			<span>
 			<button on:click={() => reset(false)}>Reset</button>
-			<button on:click={() => addLayer()}>Pick Function</button>
 			</span>
 		</h3>
 
@@ -373,19 +417,14 @@
 
 
 	</div>
-	{/if}
 
+	{:else}
 
-	{#if colors.length && layers.length}
 	<div style:display="flex" style:gap="0.5em">
-		<button class="big-button" on:click={() => {layers = []}}>
-			Remove all
-		</button>
-		<button class="big-button" on:click={() => addLayer()}>
-			Add Function
+		<button disabled={!colors.length} class="big-button" on:click={addLayer}>
+			Add function
 		</button>
 	</div>
-	{/if}
 
 	{#each layers as layer, l (l)}
 
@@ -431,8 +470,8 @@
 			</div>
 		</div>
 	</div>
-
 	{/each}
+	{/if}
 
 	<details>
 		<summary>Explanation</summary>
@@ -462,48 +501,53 @@
 </div>
 
 <SVGCanvas on:wheel={onWheel} let:minVisible let:maxVisible on:lkdragstart={onMouseDown} on:lkdragend={onMouseUp} on:lkdragmove={onMouseMove}>
+	{@const arrowsize = Math.max(Math.abs(maxVisible.y - minVisible.y), Math.abs(maxVisible.x - minVisible.x)) / 80}
+	{@const aspect = (maxVisible.y - minVisible.y)/(maxVisible.x - minVisible.x)}
 
 		
 	<g pointer-events="none">
+	{#if !singleLayer}
 	{#each layers as layer, l (l)}
 	{@const maxw = Math.abs(maxVisible.x - minVisible.x)}
 	{@const maxh = Math.abs(maxVisible.y - minVisible.y)}
 
 	<path d="M{numFormatSvg.format(clamp(layer.offset.x*zoom, -maxw, maxw))},{numFormatSvg.format(clamp(-layer.offset.y*zoom, -maxh, maxh))}  H {numFormatSvg.format(clamp((layer.scale.x+layer.offset.x)*zoom, -maxw, maxw))} V {numFormatSvg.format(clamp(-(layer.scale.y+layer.offset.y)*zoom, -maxh, maxh))} H {numFormatSvg.format(clamp(layer.offset.x*zoom, -maxw, maxw))} Z" fill="{layer.color}" fill-opacity="0.05" stroke="{layer.color}" stroke-dasharray="5 5" />
+	{/each}
 	{:else}
 	{@const maxw = Math.abs(maxVisible.x - minVisible.x)}
 	{@const maxh = Math.abs(maxVisible.y - minVisible.y)}
 
 	<path d="M{numFormatSvg.format(clamp(baseLayer.offset.x*zoom, -maxw, maxw))},{numFormatSvg.format(clamp(-baseLayer.offset.y*zoom, -maxh, maxh))}  H {numFormatSvg.format(clamp((baseLayer.scale.x+baseLayer.offset.x)*zoom, -maxw, maxw))} V {numFormatSvg.format(clamp(-(baseLayer.scale.y+baseLayer.offset.y)*zoom, -maxh, maxh))} H {numFormatSvg.format(clamp(baseLayer.offset.x*zoom, -maxw, maxw))} Z" fill="gray" fill-opacity="0.05" stroke="gray" stroke-dasharray="5 5" />
-	{/each}
+	{/if}
 	</g>
 	
 	<g pointer-events="none">
 		<line x1={minVisible.x} y1="0" x2={maxVisible.x} y2="0" stroke="black" vector-effect="non-scaling-stroke"/>
 		<line y1={minVisible.y} x1="0" y2={maxVisible.y} x2="0" stroke="black" vector-effect="non-scaling-stroke"/>
-		<polygon fill="black" points="{maxVisible.x+5} 0 {maxVisible.x-30} -20 {maxVisible.x-30} 20"/>
-		<polygon fill="black" points=" 0 {-maxVisible.y} -20 {-maxVisible.y+30} 20  {-maxVisible.y+30} "/>
-		<text y="40" x="{maxVisible.x-30}" font-size="30" text-anchor="middle" dominant-baseline="middle">X</text>
-		<text x="-40" y="{minVisible.y+30}" font-size="30" text-anchor="middle" dominant-baseline="middle">Y</text>
+		<polygon fill="black" points="{maxVisible.x+5} 0 {maxVisible.x-arrowsize} {-arrowsize/2} {maxVisible.x-arrowsize} {arrowsize/2}"/>
+		<polygon fill="black" points=" 0 {-maxVisible.y} {-arrowsize/2} {-maxVisible.y+arrowsize} {arrowsize/2}  {-maxVisible.y+arrowsize} "/>
+		<text y="{arrowsize*2}" x="{maxVisible.x-arrowsize}" font-size={arrowsize} text-anchor="middle" dominant-baseline="middle">X</text>
+		<text x="{-arrowsize*2}" y="{minVisible.y+arrowsize}" font-size={arrowsize} text-anchor="middle" dominant-baseline="middle">Y</text>
 	</g>
 	<g>
-		<path d={fixedSegments(3, 10, zoom, 0, maxVisible.x).slice(1, -1).map((x) => `M${x} -20 V20 `).join("")} stroke="black"/>
-		<path d={fixedSegments(3, 10, zoom, 0, minVisible.x).slice(1, -1).map((x) => `M${x} -20 V20 `).join("")} stroke="black"/>
-		<path d={fixedSegments(3, 10, zoom, 0, maxVisible.y).slice(1, -1).map((x) => `M-20 ${x} H20 `).join("")} stroke="black"/>
-		<path d={fixedSegments(3, 10, zoom, 0, minVisible.y).slice(1, -1).map((x) => `M-20 ${x} H20 `).join("")} stroke="black"/>
-		{#each fixedSegments(3, 10, zoom, 0, maxVisible.x).slice(1, -1) as s}
-			<text x="{s}" y="40" font-size="20" text-anchor="middle">{numFormat.format(s/zoom)}</text>
+		<path d={segments(10, 0, maxVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path d={segments(10, 0, minVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path d={segments(10*aspect, 0, maxVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		<path d={segments(10*aspect, 0, minVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		{#each segments(10, 0, maxVisible.x).slice(1) as s}
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
 		{/each}
-		{#each fixedSegments(3, 10, zoom, 0, minVisible.x).slice(1, -1) as s}
-			<text x="{s}" y="40" font-size="20" text-anchor="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(10, 0, minVisible.x).slice(1) as s}
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
 		{/each}
-		{#each fixedSegments(3, 10, zoom, 0, maxVisible.y).slice(1, -1) as s}
-			<text y="{s}" x="-40" font-size="20" text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(10*aspect, 0, maxVisible.y).slice(1) as s}
+			<text y="{s}" x="{-arrowsize*2}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
 		{/each}
-		{#each fixedSegments(3, 10, zoom, 0, minVisible.y).slice(1, -1) as s}
-			<text y="{s}" x="-40" font-size="20" text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(10*aspect, 0, minVisible.y).slice(1) as s}
+			<text y="{s}" x="{-arrowsize*2}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
 		{/each}
 	</g>
+	{#if !singleLayer}
 	{#each layers as layer, l (l)}
 		{@const f = functions[layer.selectedFunction]}
 		{@const resLeft = clamp(maxVisible.x +layer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
@@ -523,6 +567,7 @@
 		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 10} y={-layer.offset.y * zoom - 10} height="20" width="20" fill="{layer.color}" stroke="white"></rect>
 
 		<rect data-layer={l} data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+	{/each}
 	{:else}
 		{@const resLeft = clamp(maxVisible.x +baseLayer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
 		{@const resRight = clamp(-baseLayer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
@@ -547,7 +592,7 @@
 		<rect data-control="offset" x={baseLayer.offset.x * zoom - 10} y={-baseLayer.offset.y * zoom - 10} height="20" width="20" fill="#27f" stroke="white"></rect>
 
 		<rect data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 10} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 10} height="20" width="20" fill="#27f" rx="10" ry="10" stroke="white"></rect>
-	{/each}
+	{/if}
 </SVGCanvas>
 
 </div>
