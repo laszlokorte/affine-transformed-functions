@@ -503,6 +503,7 @@
 <SVGCanvas on:wheel={onWheel} let:minVisible let:maxVisible on:lkdragstart={onMouseDown} on:lkdragend={onMouseUp} on:lkdragmove={onMouseMove}>
 	{@const arrowsize = Math.max(Math.abs(maxVisible.y - minVisible.y), Math.abs(maxVisible.x - minVisible.x)) / 80}
 	{@const aspect = (maxVisible.y - minVisible.y)/(maxVisible.x - minVisible.x)}
+	{@const tickfactor = Math.max(aspect, 0.8)}
 
 		
 	<g pointer-events="none">
@@ -530,21 +531,29 @@
 		<text x="{-arrowsize*2}" y="{minVisible.y+arrowsize}" font-size={arrowsize} text-anchor="middle" dominant-baseline="middle">Y</text>
 	</g>
 	<g>
-		<path d={segments(10, 0, maxVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
-		<path d={segments(10, 0, minVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
-		<path d={segments(10*aspect, 0, maxVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
-		<path d={segments(10*aspect, 0, minVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
-		{#each segments(10, 0, maxVisible.x).slice(1) as s}
+		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor, 0, maxVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor, 0, minVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor*aspect, 0, maxVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor*aspect, 0, minVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		{#each segments(10/tickfactor, 0, maxVisible.x).slice(1) as s, si}
+			{#if si%5 == 0}
 			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
+			{/if}
 		{/each}
-		{#each segments(10, 0, minVisible.x).slice(1) as s}
+		{#each segments(10/tickfactor, 0, minVisible.x).slice(1) as s, si}
+			{#if si%5 == 0}
 			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
+			{/if}
 		{/each}
-		{#each segments(10*aspect, 0, maxVisible.y).slice(1) as s}
-			<text y="{s}" x="{-arrowsize*2}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(10/tickfactor*aspect, 0, maxVisible.y).slice(1) as s, si}
+			{#if si%5 == 0}
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+			{/if}
 		{/each}
-		{#each segments(10*aspect, 0, minVisible.y).slice(1) as s}
-			<text y="{s}" x="{-arrowsize*2}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(10/tickfactor*aspect, 0, minVisible.y).slice(1) as s, si}
+			{#if si%5 == 0}
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+			{/if}
 		{/each}
 	</g>
 	{#if !singleLayer}
@@ -555,10 +564,10 @@
 		<g pointer-events="none">
 			{#if f.fractionalB(layer.baseParam.integer, Math.sign(layer.scale.x))}
 
-			<polyline  stroke-width="3" points={segments(resRight, layer.offset.x, (maxVisible.x + 10)/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, Math.sign(layer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={layer.color} fill="none"/>	
+			<polyline  vector-effect="non-scaling-stroke" stroke-width="3" points={segments(resRight, layer.offset.x, (maxVisible.x + 10)/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, Math.sign(layer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={layer.color} fill="none"/>	
 				{/if}
 				{#if f.fractionalB(layer.baseParam.integer, -1*Math.sign(layer.scale.x))}
-					<polyline  stroke-width="3" points={segments(resLeft, layer.offset.x, (minVisible.x - 10)/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, -Math.sign(layer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, -Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={layer.color} fill="none"/>
+					<polyline  vector-effect="non-scaling-stroke" stroke-width="3" points={segments(resLeft, layer.offset.x, (minVisible.x - 10)/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, -Math.sign(layer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, -Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={layer.color} fill="none"/>
 				{/if}
 		</g>
 		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 20} y={-layer.offset.y * zoom - 20} height="40" width="40" fill="none"></rect>
@@ -578,10 +587,10 @@
 		<g pointer-events="none">
 			{#if f.fractionalB(baseLayer.baseParam.integer, Math.sign(baseLayer.scale.x))}
 
-			<polyline  stroke-width="3" points={segmentsRight.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>	
+			<polyline  vector-effect="non-scaling-stroke" stroke-width="3" points={segmentsRight.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>	
 				{/if}
 				{#if f.fractionalB(baseLayer.baseParam.integer, -1*Math.sign(baseLayer.scale.x))}
-					<polyline  stroke-width="3" points={segmentsLeft.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>
+					<polyline  vector-effect="non-scaling-stroke" stroke-width="3" points={segmentsLeft.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>
 				{/if}
 		</g>
 		{/if}
