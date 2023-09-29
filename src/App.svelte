@@ -2,6 +2,7 @@
 	const numFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
 	const numFormatSvg = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
 	const intFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 0, maximumFractionDigits: 0,signDisplay:"auto"});
+	const termFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"never"});
 	import SVGCanvas from './SVGCanvas.svelte'
 	
 
@@ -41,10 +42,13 @@
 	let pressLayer = null		
 	let xdominant = true
 
+	let latestLayer = null
+
 
 
 	function reset(l) {
 		if(l===false) {
+			latestLayer = l
 			baseLayer.scale.x = 1
 			baseLayer.scale.y = 1
 			baseLayer.offset.x = 0
@@ -53,6 +57,7 @@
 			baseLayer.baseParam.value = 2
 			baseLayer.onlyPositives = false
 		} else{
+			latestLayer = false
 			layers[l].scale.x = 1
 			layers[l].scale.y = 1
 			layers[l].offset.x = 0
@@ -67,11 +72,13 @@
 		colors.push(layers[l].color)
 		colors = colors
 		layers = [...layers.slice(0, l), ...layers.slice(l+1)]
+		latestLayer = null
 	}
 
 	function removeAll(l) {
 		colors = [colors, ...layers.map(l=>l.color)]
 		layers = []
+		latestLayer = null
 	}
 
 	function addLayer() {
@@ -92,8 +99,12 @@
 	 			onlyPositives: false,
 	 			selectedFunction: 2,
 			}, ...layers]
+
+			latestLayer = layers.length - 1
 		}
 	}
+
+	addLayer()
 	
 	function onMouseDown({detail: local}) {
 		if(!local.target.getAttribute('data-control')) {
@@ -108,7 +119,7 @@
 		pressOffset = control === 'offset'
 		pressScale = control === 'scale'
 		xdominant = true
-
+		latestLayer = pressLayer
 
 		if(pressOffset) {
 			press.initialx = (pressLayer === false ? baseLayer : layers[pressLayer]).offset.x
@@ -185,8 +196,8 @@
 	let functions = [
 		{previewColor: 'hsl(180, 0%,30%)', supportsScale:(s) => true, shortName: 'constant', unicodeExpression: '1', fractionalB: (bIsInt, x) => true, fn:(x, b) => 1},
 		{previewColor: 'hsl(0, 30%,50%)', supportsScale:(s) => true, shortName: 'linear', unicodeExpression: 'x', fractionalB: (bIsInt, x) => true, fn:(x, b) => x},
-		{previewColor: 'hsl(180, 90%,40%)', supportsScale:(s) => true, shortName: 'power', unicodeExpression: 'xᵏ', fractionalB: (bIsInt, x) => bIsInt || x>=0, fn:(x, b) => Math.pow(x, b)},
-		{previewColor: 'hsl(100, 80%,40%)', supportsScale:(s) => true, shortName: 'root', unicodeExpression: 'ᵏ√x', fractionalB: (bIsInt, x) => bIsInt || x>=0, fn:(x, b) => Math.pow(x, 1/b)},
+		{previewColor: 'hsl(100, 80%,40%)', supportsScale:(s) => true, shortName: 'power', unicodeExpression: 'xᵏ', fractionalB: (bIsInt, x) => bIsInt || x>=0, fn:(x, b) => Math.pow(x, b)},
+		{previewColor: 'hsl(180, 90%,40%)', supportsScale:(s) => true, shortName: 'root', unicodeExpression: 'ᵏ√x', fractionalB: (bIsInt, x) => bIsInt || x>=0, fn:(x, b) => Math.pow(x, 1/b)},
 		{previewColor: 'hsl(240, 90%,60%)', supportsScale:(s) => true, shortName: 'reciprocal', unicodeExpression: '1/xᵏ', fractionalB: (bIsInt, x) => bIsInt || x>0, fn:(x, b, sign) => x=== 0 ? (sign<0?(Infinity*Math.pow(-1,Math.ceil(b))):Infinity) : 1/Math.pow(x,b)},
 		{previewColor: 'hsl(290, 100%,45%)', supportsScale:(s) => true, shortName: 'exponential', unicodeExpression: 'kˣ', fractionalB: (bIsInt, x) => true, fn:(x, b) => Math.pow(b, x)},
 		{previewColor: 'hsl(300, 100%,50%)', supportsScale:(s) => true, shortName: 'logarithmic', unicodeExpression: 'logₖ(x)', fractionalB: (bIsInt, x) => true, fn:(x, b) => x >0 && b>0 ? Math.log(x)/Math.log(b) : (x<0?undefined:(b<1?1:-1)*Infinity)},
@@ -237,6 +248,7 @@
 		gap: 0.5em;
 		white-space: nowrap;
 		align-items: center;
+		margin-bottom: 1em;
 	}
 	button {
 		cursor: pointer;
@@ -269,6 +281,8 @@
 		bottom: 0;
 		padding: 1em;
 		z-index: 100;
+		user-select: none;
+		font-size: small;
 	}
 
 	input[type=range] {
@@ -364,6 +378,11 @@
 		margin: 0;
 		padding: 0.5em;
 	}
+
+	.scaling {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+	}
 </style>
 
 <div class="container">
@@ -407,21 +426,23 @@
 
 		</div>
 
-		<div class="checkbox-row">
-			<label for="param_a_base" style:display="inline-block" style:width="8em">A: {numFormat.format(baseLayer.scale.x)}</label> 
-			<label for="param_b_base" style:display="inline-block" style:width="8em">B: {numFormat.format(baseLayer.scale.y)}</label> 
-			<label for="param_c_base" style:display="inline-block" style:width="8em">C: {numFormat.format(baseLayer.offset.x)}</label> 
-			<label for="param_d_base" style:display="inline-block" style:width="8em">D: {numFormat.format(baseLayer.offset.y)}</label> 
-
+		<strong>Affine Transformation</strong>
+		<div class="scaling">
+			<label for="param_a_base" style:display="inline-block" style:width="8em">scale x: {numFormat.format(baseLayer.scale.x)}</label> 
+			<label for="param_c_base" style:display="inline-block" style:width="8em">shift x: {numFormat.format(baseLayer.offset.x)}</label> 
+			<label for="param_b_base" style:display="inline-block" style:width="8em">scale y: {numFormat.format(baseLayer.scale.y)}</label> 
+			<label for="param_d_base" style:display="inline-block" style:width="8em">shift y: {numFormat.format(baseLayer.offset.y)}</label> 
 		</div>		
-
+		<div style="margin: 1em; text-align: center;font-weight: bold;">
+			y = {termFormat.format(baseLayer.scale.y)} ⋅ f({termFormat.format(baseLayer.scale.x)} ⋅ x {baseLayer.offset.x>0?'-':'+'} {termFormat.format(baseLayer.offset.x)}) + {termFormat.format(baseLayer.offset.y)}
+		</div>
 
 	</div>
 
 	{:else}
 
 	<div style:display="flex" style:gap="0.5em">
-		<button disabled={!colors.length} class="big-button" on:click={addLayer}>
+		<button disabled={!colors.length} class="big-button" on:click={() => addLayer()}>
 			Add function
 		</button>
 	</div>
@@ -430,8 +451,8 @@
 
 
 
-	<div class="layer-box" style:--layer-color={layer.color}>
-		<h3><label style:flex-grow="1">Function #{l+1} 
+	<div on:mousedown={() => {latestLayer = l}} class="layer-box" style:--layer-color={layer.color}>
+		<h3><label style:flex-grow="1">Function #{layers.length - l} 
 			<input type="color" style:display="none" bind:value={layer.color} /></label>
 			<span>
 				<button on:click={() => reset(l)}>Reset</button>
@@ -460,11 +481,14 @@
 					<label><input type="checkbox" bind:checked={layer.baseParam.integer} /> Integers only</label>
 
 				</div>
-				<div class="checkbox-row">
-					<label for="param_a_{l}" style:display="inline-block" style:width="8em">A: {numFormat.format(layer.scale.x)}</label> 
-					<label for="param_b_{l}" style:display="inline-block" style:width="8em">B: {numFormat.format(layer.scale.y)}</label> 
-					<label for="param_c_{l}" style:display="inline-block" style:width="8em">C: {numFormat.format(layer.offset.x)}</label> 
-					<label for="param_d_{l}" style:display="inline-block" style:width="8em">D: {numFormat.format(layer.offset.y)}</label> 
+
+				<strong>Affine Transformation</strong>
+
+				<div class="scaling">
+					<label for="param_a_{l}" style:display="inline-block" style:width="8em">scale x: {numFormat.format(layer.scale.x)}</label> 
+					<label for="param_c_{l}" style:display="inline-block" style:width="8em">shift x: {numFormat.format(layer.offset.x)}</label> 
+					<label for="param_b_{l}" style:display="inline-block" style:width="8em">scale y: {numFormat.format(layer.scale.y)}</label> 
+					<label for="param_d_{l}" style:display="inline-block" style:width="8em">shift y: {numFormat.format(layer.offset.y)}</label> 
 
 				</div>
 			</div>
@@ -494,9 +518,8 @@
 		<a href="https://tools.laszlokorte.de" title="More educational tools">More educational tools</a>
 	</p>
 
-	<label class="zoom-control" on:wheel|preventDefault={onWheel}>
-		Zoom
-	<input type="range" min={-5} max="5" step={0.05} bind:value={zoomFactor} /> 
+	<label class="zoom-control" on:wheel|preventDefault={onWheel} on:dblclick|preventDefault={() => zoomFactor = 1}>
+		Zoom <input type="range" min={-5} max="5" step={0.05} bind:value={zoomFactor} /> 
 	</label>
 </div>
 
@@ -577,6 +600,14 @@
 
 		<rect data-layer={l} data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
 	{/each}
+	{#if layers[latestLayer]} 
+	<rect data-layer={latestLayer} data-control="offset" x={layers[latestLayer].offset.x * zoom - 20} y={-layers[latestLayer].offset.y * zoom - 20} height="40" width="40" fill="none" stroke="none"></rect>
+	<rect data-layer={latestLayer} data-control="scale" x={(layers[latestLayer].scale.x+layers[latestLayer].offset.x) * zoom - 20} y={-(layers[latestLayer].offset.y+layers[latestLayer].scale.y) * zoom - 20} height="40" width="40" fill="none" rx="20" ry="20" stroke="none"></rect>
+
+	<rect data-layer={latestLayer} data-control="offset" x={layers[latestLayer].offset.x * zoom - 10} y={-layers[latestLayer].offset.y * zoom - 10} height="20" width="20" fill="{layers[latestLayer].color}" stroke="white"></rect>
+	<rect data-layer={latestLayer} data-control="scale" x={(layers[latestLayer].scale.x+layers[latestLayer].offset.x) * zoom - 10} y={-(layers[latestLayer].offset.y+layers[latestLayer].scale.y) * zoom - 10} height="20" width="20" fill="{layers[latestLayer].color}" rx="10" ry="10" stroke="white"></rect>
+
+	{/if}
 	{:else}
 		{@const resLeft = clamp(maxVisible.x +baseLayer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
 		{@const resRight = clamp(-baseLayer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
