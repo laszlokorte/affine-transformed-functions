@@ -506,8 +506,8 @@
 	</g>
 	{#each layers as layer, l (l)}
 		{@const f = functions[layer.selectedFunction]}
-		{@const resLeft = Math.abs(maxVisible.x +layer.offset.x*zoom) / 2}
-		{@const resRight = Math.abs(-layer.offset.x*zoom - minVisible.x) / 2}
+		{@const resLeft = clamp(maxVisible.x +layer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
+		{@const resRight = clamp(-layer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
 		<g pointer-events="none">
 			{#if f.fractionalB(layer.baseParam.integer, Math.sign(layer.scale.x))}
 
@@ -524,17 +524,20 @@
 
 		<rect data-layer={l} data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
 	{:else}
+		{@const resLeft = clamp(maxVisible.x +baseLayer.offset.x*zoom, 0, maxVisible.x-minVisible.x) / 2}
+		{@const resRight = clamp(-baseLayer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
+		{@const segmentsLeft = segments(resLeft, baseLayer.offset.x, minVisible.x/zoom - 10)}
+		{@const segmentsRight = segments(resRight, baseLayer.offset.x, (maxVisible.x + 10)/zoom)}
+		<text>{segmentsLeft.length}</text>
 		{#each functions as f, fi}
-		{@const resLeft = Math.abs(maxVisible.x +baseLayer.offset.x*zoom)}
-		{@const resRight = Math.abs(-baseLayer.offset.x*zoom - minVisible.x)}
 		{#if f.previewColor}
 		<g pointer-events="none">
 			{#if f.fractionalB(baseLayer.baseParam.integer, Math.sign(baseLayer.scale.x))}
 
-			<polyline  stroke-width="3" points={segments(resRight, baseLayer.offset.x, (maxVisible.x + 10)/zoom).filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>	
+			<polyline  stroke-width="3" points={segmentsRight.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>	
 				{/if}
 				{#if f.fractionalB(baseLayer.baseParam.integer, -1*Math.sign(baseLayer.scale.x))}
-					<polyline  stroke-width="3" points={segments(resLeft, baseLayer.offset.x, minVisible.x/zoom - 10).filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>
+					<polyline  stroke-width="3" points={segmentsLeft.filter(x => !baseLayer.onlyPositives ||(x/baseLayer.scale.x)/baseLayer.scale.x >= 0).map(x => f.fn((x/baseLayer.scale.x)-baseLayer.offset.x/baseLayer.scale.x, baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-baseLayer.offset.x)/baseLayer.scale.x), baseLayer.baseParam.castValue, -Math.sign(baseLayer.scale.x))*baseLayer.scale.y*zoom-baseLayer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={f.previewColor} fill="none"/>
 				{/if}
 		</g>
 		{/if}
