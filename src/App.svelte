@@ -528,7 +528,6 @@
 		{@const resRight = clamp(-baseLayer.offset.x*zoom - minVisible.x, 0, maxVisible.x-minVisible.x) / 2}
 		{@const segmentsLeft = segments(resLeft, baseLayer.offset.x, minVisible.x/zoom - 10)}
 		{@const segmentsRight = segments(resRight, baseLayer.offset.x, (maxVisible.x + 10)/zoom)}
-		<text>{segmentsLeft.length}</text>
 		{#each functions as f, fi}
 		{#if f.previewColor}
 		<g pointer-events="none">
