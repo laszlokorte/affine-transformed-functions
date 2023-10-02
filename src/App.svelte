@@ -36,6 +36,10 @@
 		y:0,
 		initialx: 0,
 		initialy: 0,
+		project: {
+			x: 1,
+			y: 1,
+		}
 	}
 	let pressOffset = false
 	let pressScale = false
@@ -113,6 +117,8 @@
 
 		press.x = local.x
 		press.y = local.y
+		press.project.x = local.target.getAttribute('data-project-x') || 1
+		press.project.y = local.target.getAttribute('data-project-y') || 1
 
 		const control = local.target.getAttribute('data-control')
 		pressLayer = local.target.hasAttribute('data-layer')  ? parseInt(local.target.getAttribute('data-layer'), 10) : false
@@ -139,42 +145,18 @@
 	function onMouseMove({detail: local}) {
 		const dx = local.x - press.x
 		const dy = local.y - press.y
-		const d2 = (dx*dx + dy*dy)/zoom
-		
-		if(d2 > 50 && Math.abs(dx) * 8 < Math.abs(dy)) {
-			xdominant = false
-		} else if(d2 > 50 && Math.abs(dx) > 8 * Math.abs(dy)) {
-			xdominant = true
-		}
+
+		let px =  press.project.x*dx
+		let py =  press.project.y*dy
 
 		const currentLayer = (pressLayer === false ? baseLayer : layers[pressLayer])
 
 		if(pressOffset) {
-			if(local.shift) {
-				if(local.alt ^ xdominant) {
-					currentLayer.offset.x = press.initialx + dx/zoom
-					currentLayer.offset.y = press.initialy
-				} else {
-					currentLayer.offset.y = press.initialy - dy/zoom
-					currentLayer.offset.x = press.initialx
-				}
-			} else {
-				currentLayer.offset.x = press.initialx + dx/zoom
-				currentLayer.offset.y = press.initialy - dy/zoom
-			}
+			currentLayer.offset.x = press.initialx + px/zoom
+			currentLayer.offset.y = press.initialy - py/zoom
 		} else if(pressScale) {
-			if(local.shift) {			
-				if(local.alt ^ xdominant) {
-					currentLayer.scale.x = press.initialx + dx/zoom
-					currentLayer.scale.y = press.initialy
-				} else {
-					currentLayer.scale.y = press.initialy - dy/zoom
-					currentLayer.scale.x = press.initialx
-				}
-			} else {
-				currentLayer.scale.x = press.initialx + dx/zoom
-				currentLayer.scale.y = press.initialy - dy/zoom
-			}
+			currentLayer.scale.x = press.initialx + px/zoom
+			currentLayer.scale.y = press.initialy - py/zoom
 		}
 
 		layers = layers
@@ -593,19 +575,69 @@
 					<polyline  vector-effect="non-scaling-stroke" stroke-width="3" points={segments(resLeft, layer.offset.x, (minVisible.x - 10)/zoom).filter(x => !layer.onlyPositives ||(x/layer.scale.x)/layer.scale.x >= 0).map(x => f.fn((x/layer.scale.x)-layer.offset.x/layer.scale.x, layer.baseParam.castValue, -Math.sign(layer.scale.x)) === undefined ? '' : `${numFormatSvg.format(x*zoom)}, ${numFormatSvg.format(clamp(-f.fn(((x-layer.offset.x)/layer.scale.x), layer.baseParam.castValue, -Math.sign(layer.scale.x))*layer.scale.y*zoom-layer.offset.y*zoom, 3*minVisible.y, zoom*3*maxVisible.y))}`).join(" ")} stroke={layer.color} fill="none"/>
 				{/if}
 		</g>
-		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 20} y={-layer.offset.y * zoom - 20} height="40" width="40" fill="none"></rect>
-		<rect data-layer={l} data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 20} y={-(layer.offset.y+layer.scale.y) * zoom - 20} height="40" width="40" fill="none" rx="10" ry="10"></rect>
+		
+		<g>
+		<rect data-layer={l} data-project-x=0 style:cursor="row-resize" data-control="offset" x={(layer.scale.x/2+layer.offset.x) * zoom - 25} y={-(layer.offset.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-layer={l} data-project-y=0 style:cursor="col-resize" data-control="offset" x={(layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+		<rect data-layer={l} data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(layer.scale.x/2+layer.offset.x) * zoom - 25} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-layer={l} data-project-y=0 style:cursor="ew-resize" data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+
+
+		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 20} y={-layer.offset.y * zoom - 20} height="40" width="40" fill="none" stroke="none"></rect>
+		<rect data-layer={l} data-control="scale" style:cursor="{layer.scale.x*layer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" x={(layer.scale.x+layer.offset.x) * zoom - 20} y={-(layer.offset.y+layer.scale.y) * zoom - 20} height="40" width="40" fill="none" rx="20" ry="20" stroke="none"></rect>
+
+
+		<rect  data-layer={l} data-project-x=0 style:cursor="row-resize" data-control="offset" x={(layer.scale.x/2+layer.offset.x) * zoom - 20} y={-(layer.offset.y) * zoom - 5} height="10" width="40" fill="{layer.color}" stroke="white"></rect>
+		
+		<rect  data-layer={l} data-project-y=0 style:cursor="col-resize" data-control="offset" x={(layer.offset.x) * zoom - 5} y={-(layer.offset.y+layer.scale.y/2) * zoom - 20} height="40" width="10" fill="{layer.color}" stroke="white"></rect>
+
 
 		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 10} y={-layer.offset.y * zoom - 10} height="20" width="20" fill="{layer.color}" stroke="white"></rect>
+		
+		<rect  data-layer={l} data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(layer.scale.x/2+layer.offset.x) * zoom - 20} y={-(layer.offset.y+layer.scale.y) * zoom - 5} height="10" width="40" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+			
+		<rect  data-layer={l} data-project-y=0  style:cursor="ew-resize" data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 5} y={-(layer.offset.y+layer.scale.y/2) * zoom - 20} height="40" width="10" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
 
-		<rect data-layer={l} data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+		<rect data-layer={l} data-control="scale" style:cursor="{layer.scale.x*layer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+	</g>
+
 	{/each}
-	{#if layers[latestLayer]} 
-	<rect data-layer={latestLayer} data-control="offset" x={layers[latestLayer].offset.x * zoom - 20} y={-layers[latestLayer].offset.y * zoom - 20} height="40" width="40" fill="none" stroke="none"></rect>
-	<rect data-layer={latestLayer} data-control="scale" x={(layers[latestLayer].scale.x+layers[latestLayer].offset.x) * zoom - 20} y={-(layers[latestLayer].offset.y+layers[latestLayer].scale.y) * zoom - 20} height="40" width="40" fill="none" rx="20" ry="20" stroke="none"></rect>
+	{#if layers[latestLayer]}
+	{@const l = latestLayer} 
+	{@const layer = layers[latestLayer]} 
 
-	<rect data-layer={latestLayer} data-control="offset" x={layers[latestLayer].offset.x * zoom - 10} y={-layers[latestLayer].offset.y * zoom - 10} height="20" width="20" fill="{layers[latestLayer].color}" stroke="white"></rect>
-	<rect data-layer={latestLayer} data-control="scale" x={(layers[latestLayer].scale.x+layers[latestLayer].offset.x) * zoom - 10} y={-(layers[latestLayer].offset.y+layers[latestLayer].scale.y) * zoom - 10} height="20" width="20" fill="{layers[latestLayer].color}" rx="10" ry="10" stroke="white"></rect>
+	<g>
+		<rect data-layer={l} data-project-x=0 style:cursor="row-resize" data-control="offset" x={(layer.scale.x/2+layer.offset.x) * zoom - 25} y={-(layer.offset.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-layer={l} data-project-y=0 style:cursor="col-resize" data-control="offset" x={(layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+		<rect data-layer={l} data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(layer.scale.x/2+layer.offset.x) * zoom - 25} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-layer={l} data-project-y=0 style:cursor="ew-resize" data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+
+
+		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 20} y={-layer.offset.y * zoom - 20} height="40" width="40" fill="none" stroke="none"></rect>
+		<rect data-layer={l} data-control="scale" style:cursor="{layer.scale.x*layer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" x={(layer.scale.x+layer.offset.x) * zoom - 20} y={-(layer.offset.y+layer.scale.y) * zoom - 20} height="40" width="40" fill="none" rx="20" ry="20" stroke="none"></rect>
+
+
+		<rect  data-layer={l} data-project-x=0 style:cursor="row-resize" data-control="offset" x={(layer.scale.x/2+layer.offset.x) * zoom - 20} y={-(layer.offset.y) * zoom - 5} height="10" width="40" fill="{layer.color}" stroke="white"></rect>
+		
+		<rect  data-layer={l} data-project-y=0 style:cursor="col-resize" data-control="offset" x={(layer.offset.x) * zoom - 5} y={-(layer.offset.y+layer.scale.y/2) * zoom - 20} height="40" width="10" fill="{layer.color}" stroke="white"></rect>
+
+
+		<rect data-layer={l} data-control="offset" x={layer.offset.x * zoom - 10} y={-layer.offset.y * zoom - 10} height="20" width="20" fill="{layer.color}" stroke="white"></rect>
+		
+		<rect  data-layer={l} data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(layer.scale.x/2+layer.offset.x) * zoom - 20} y={-(layer.offset.y+layer.scale.y) * zoom - 5} height="10" width="40" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+			
+		<rect  data-layer={l} data-project-y=0  style:cursor="ew-resize" data-control="scale" x={(layer.scale.x+layer.offset.x) * zoom - 5} y={-(layer.offset.y+layer.scale.y/2) * zoom - 20} height="40" width="10" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+
+		<rect data-layer={l} data-control="scale" style:cursor="{layer.scale.x*layer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" x={(layer.scale.x+layer.offset.x) * zoom - 10} y={-(layer.offset.y+layer.scale.y) * zoom - 10} height="20" width="20" fill="{layer.color}" rx="10" ry="10" stroke="white"></rect>
+	</g>
 
 	{/if}
 	{:else}
@@ -626,12 +658,35 @@
 		</g>
 		{/if}
 		{/each}
+
+
+		<rect data-project-x=0 style:cursor="row-resize" data-control="offset" x={(baseLayer.scale.x/2+baseLayer.offset.x) * zoom - 25} y={-(baseLayer.offset.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-project-y=0 style:cursor="col-resize" data-control="offset" x={(baseLayer.offset.x) * zoom - 10} y={-(baseLayer.offset.y+baseLayer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+		<rect data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(baseLayer.scale.x/2+baseLayer.offset.x) * zoom - 25} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 10} height="20" width="50" fill="none" stroke="none"></rect>
+		
+		<rect data-project-y=0 style:cursor="ew-resize" data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 10} y={-(baseLayer.offset.y+baseLayer.scale.y/2) * zoom - 25} height="50" width="20" fill="none" stroke="none"></rect>
+
+
 		<rect data-control="offset" x={baseLayer.offset.x * zoom - 20} y={-baseLayer.offset.y * zoom - 20} height="40" width="40" fill="none"></rect>
-		<rect data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 20} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 20} height="40" width="40" fill="none" rx="10" ry="10"></rect>
+
+		<rect style:cursor="{baseLayer.scale.x*baseLayer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 20} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 20} height="40" width="40" fill="none" rx="10" ry="10"></rect>
+
+
+		<rect data-project-x=0 style:cursor="row-resize" data-control="offset" x={(baseLayer.scale.x/2+baseLayer.offset.x) * zoom - 20} y={-(baseLayer.offset.y) * zoom - 5} height="10" width="40" fill="#27f" stroke="white"></rect>
+		
+		<rect data-project-y=0 style:cursor="col-resize" data-control="offset" x={(baseLayer.offset.x) * zoom - 5} y={-(baseLayer.offset.y+baseLayer.scale.y/2) * zoom - 20} height="40" width="10" fill="#27f" stroke="white"></rect>
+
 
 		<rect data-control="offset" x={baseLayer.offset.x * zoom - 10} y={-baseLayer.offset.y * zoom - 10} height="20" width="20" fill="#27f" stroke="white"></rect>
 
-		<rect data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 10} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 10} height="20" width="20" fill="#27f" rx="10" ry="10" stroke="white"></rect>
+		<rect data-project-x=0 style:cursor="ns-resize" data-control="scale" x={(baseLayer.scale.x/2+baseLayer.offset.x) * zoom - 20} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 5} height="10" width="40" fill="#27f" rx="10" ry="10" stroke="white"></rect>
+		
+		<rect data-project-y=0  style:cursor="ew-resize" data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 5} y={-(baseLayer.offset.y+baseLayer.scale.y/2) * zoom - 20} height="40" width="10" fill="#27f" rx="10" ry="10" stroke="white"></rect>
+
+		<rect style:cursor="{baseLayer.scale.x*baseLayer.scale.y > 0 ? 'nesw-resize' : 'nwse-resize'}" data-control="scale" x={(baseLayer.scale.x+baseLayer.offset.x) * zoom - 10} y={-(baseLayer.offset.y+baseLayer.scale.y) * zoom - 10} height="20" width="20" fill="#27f" rx="10" ry="10" stroke="white"></rect>
+		
 	{/if}
 </SVGCanvas>
 
