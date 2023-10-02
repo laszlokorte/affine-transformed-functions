@@ -1,5 +1,6 @@
 <script>
 	const numFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
+	const axisFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 0, maximumFractionDigits: 2,signDisplay:"auto"});
 	const numFormatSvg = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
 	const intFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 0, maximumFractionDigits: 0,signDisplay:"auto"});
 	const termFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"never"});
@@ -193,6 +194,16 @@
 
 	function onWheel(evt) {
 		zoomFactor = clamp(zoomFactor + (-(evt.deltaY)/120/3), -5, 5)
+	}
+
+	function axisInterval(range) {
+		var x = Math.pow(10.0, Math.floor(Math.log10(range)));
+	    if (range / x >= 5)
+	        return x;
+	    else if (range / (x / 2.0) >= 5)
+	        return x / 2.0;
+	    else
+	        return x / 5.0;
 	}
 
 </script>
@@ -530,8 +541,14 @@
 
 <SVGCanvas on:wheel={onWheel} let:minVisible let:maxVisible on:lkdragstart={onMouseDown} on:lkdragend={onMouseUp} on:lkdragmove={onMouseMove}>
 	{@const arrowsize = Math.max(Math.abs(maxVisible.y - minVisible.y), Math.abs(maxVisible.x - minVisible.x)) / 80}
-	{@const aspect = (maxVisible.y - minVisible.y)/(maxVisible.x - minVisible.x)}
-	{@const tickfactor = Math.max(aspect, 0.8)}
+
+	{@const maxSize = Math.max(maxVisible.x, maxVisible.y)}
+	{@const maxAxis = (maxSize / zoom)}
+	{@const tickWidth = axisInterval(maxAxis)}
+	{@const xTickCount = Math.floor(maxVisible.x / zoom / tickWidth)}
+	{@const yTickCount = Math.floor(maxVisible.x / zoom / tickWidth)}
+	{@const xTickLength = xTickCount * tickWidth * zoom}
+	{@const yTickLength = yTickCount * tickWidth * zoom}
 
 		
 	<g pointer-events="none">
@@ -559,28 +576,28 @@
 		<text x="{-arrowsize*2}" y="{minVisible.y+arrowsize}" font-size={arrowsize} text-anchor="middle" dominant-baseline="middle">Y</text>
 	</g>
 	<g>
-		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor, 0, maxVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
-		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor, 0, minVisible.x).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
-		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor*aspect, 0, maxVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
-		<path vector-effect="non-scaling-stroke" d={segments(10/tickfactor*aspect, 0, minVisible.y).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
-		{#each segments(10/tickfactor, 0, maxVisible.x).slice(1) as s, si}
-			{#if si%5 == 0}
-			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
+		<path vector-effect="non-scaling-stroke" d={segments(xTickCount, 0, xTickLength).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(xTickCount, 0, -xTickLength).slice(1).map((x) => `M${x} ${-arrowsize} V${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(yTickCount, 0, yTickLength).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		<path vector-effect="non-scaling-stroke" d={segments(yTickCount, 0, -yTickLength).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
+		{#each segments(xTickCount, 0, xTickLength).slice(1) as s, si}
+			{#if !si || si%2 == 1}
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{axisFormat.format(s/zoom)}</text>
 			{/if}
 		{/each}
-		{#each segments(10/tickfactor, 0, minVisible.x).slice(1) as s, si}
-			{#if si%5 == 0}
-			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(xTickCount, 0, -xTickLength).slice(1) as s, si}
+			{#if !si || si%2 == 1}
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{axisFormat.format(s/zoom)}</text>
 			{/if}
 		{/each}
-		{#each segments(10/tickfactor*aspect, 0, maxVisible.y).slice(1) as s, si}
-			{#if si%5 == 0}
-			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(yTickCount, 0, -yTickLength).slice(1) as s, si}
+			{#if !si || si%2 == 1}
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{axisFormat.format(-s/zoom)}</text>
 			{/if}
 		{/each}
-		{#each segments(10/tickfactor*aspect, 0, minVisible.y).slice(1) as s, si}
-			{#if si%5 == 0}
-			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{numFormat.format(s/zoom)}</text>
+		{#each segments(yTickCount, 0, yTickLength).slice(1) as s, si}
+			{#if !si || si%2 == 1}
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{axisFormat.format(-s/zoom)}</text>
 			{/if}
 		{/each}
 	</g>
