@@ -1,6 +1,7 @@
 <script>
 	const numFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
-	const axisFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 0, maximumFractionDigits: 2,signDisplay:"auto"});
+	const axisFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumSignificantDigits : 2, maximumSignificantDigits : 2,signDisplay:"auto", notation: "standard",trailingZeroDisplay:"stripIfInteger"});
+	const axisFormatExp = new Intl.NumberFormat("en-US", {useGrouping:false, minimumSignificantDigits : 2, maximumSignificantDigits : 2,signDisplay:"auto", notation: "scientific"});
 	const numFormatSvg = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"auto"});
 	const intFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 0, maximumFractionDigits: 0,signDisplay:"auto"});
 	const termFormat = new Intl.NumberFormat("en-US", {useGrouping:false, minimumFractionDigits: 2, maximumFractionDigits: 2,signDisplay:"never"});
@@ -51,10 +52,18 @@
 
 	let latestLayer = null
 
+	function formatAxisNumber(n) {
+		if(Math.abs(Math.log(Math.abs(n))) > 5) {
+			return axisFormatExp.format(n).replace('E','×10^')
+		} else {
+			return axisFormat.format(n)
+		}
+	}
 
 
 	function reset(l) {
 		if(l===false) {
+			zoomFactor = 1
 			latestLayer = l
 			baseLayer.scale.x = 1
 			baseLayer.scale.y = 1
@@ -556,8 +565,8 @@
 	{@const maxSize = Math.max(maxVisible.x, maxVisible.y)}
 	{@const maxAxis = (maxSize / zoom)}
 	{@const tickWidth = axisInterval(maxAxis)}
-	{@const xTickCount = Math.floor(maxVisible.x / zoom / tickWidth)}
-	{@const yTickCount = Math.floor(maxVisible.x / zoom / tickWidth)}
+	{@const xTickCount = Math.floor((maxVisible.x / zoom) / tickWidth)}
+	{@const yTickCount = Math.floor((maxVisible.y / zoom) / tickWidth)}
 	{@const xTickLength = xTickCount * tickWidth * zoom}
 	{@const yTickLength = yTickCount * tickWidth * zoom}
 
@@ -593,22 +602,22 @@
 		<path vector-effect="non-scaling-stroke" d={segments(yTickCount, 0, -yTickLength).slice(1).map((x) => `M${-arrowsize} ${x} H${arrowsize} `).join("")} stroke="black"/>
 		{#each segments(xTickCount, 0, xTickLength).slice(1) as s, si}
 			{#if !si || si%2 == 1}
-			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{axisFormat.format(s/zoom)}</text>
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{formatAxisNumber(s/zoom)}</text>
 			{/if}
 		{/each}
 		{#each segments(xTickCount, 0, -xTickLength).slice(1) as s, si}
 			{#if !si || si%2 == 1}
-			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{axisFormat.format(s/zoom)}</text>
+			<text x="{s}" y="{arrowsize*2}" font-size={arrowsize} text-anchor="middle">{formatAxisNumber(s/zoom)}</text>
 			{/if}
 		{/each}
 		{#each segments(yTickCount, 0, -yTickLength).slice(1) as s, si}
 			{#if !si || si%2 == 1}
-			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{axisFormat.format(-s/zoom)}</text>
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{formatAxisNumber(-s/zoom)}</text>
 			{/if}
 		{/each}
 		{#each segments(yTickCount, 0, yTickLength).slice(1) as s, si}
 			{#if !si || si%2 == 1}
-			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{axisFormat.format(-s/zoom)}</text>
+			<text y="{s}" x="{-arrowsize*1.5}" font-size={arrowsize} text-anchor="end" dominant-baseline="middle">{formatAxisNumber(-s/zoom)}</text>
 			{/if}
 		{/each}
 	</g>
