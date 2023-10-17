@@ -536,18 +536,41 @@
 	<details>
 		<summary>Explanation</summary>
 		
+		<p> On the right side you can see how the plots of various functions
+		look in relation on to each other. Use the circular or the square
+		handle in the coordinate system to scale or shift the functions in
+		X or in Y direction. This shifting and scaling is called affine
+		transforming. </p> 
+		<p>You can transform the function input by scaling or shifting along the x-axis (horizontally) or you can transform the function output by scaling or shifting along the y-axis (vertically).</p>
+
+		<p>You will notice that the relative distances
+		between the functions will not change if the function output is transformed affinely. </p>
+
 		<p>
-			On the right side you can see how the plots of various functions look in relation on to each other. Use the circular or the square handle in the coordinate system to scale or shift the functions in X or in Y direction. This shifting and scaling is called affine transforming.
+		The parameter
+		<strong>k</strong> can be adjusted using the slider on the left
+		side. You can observe how the curvature of the functions will be
+		affected.
 		</p>
+
 		<p>
-			You will notice that the relative distances between the functions will not change. The parameter <strong>k</strong> can be adjusted using the slider on the left side. You can observe how the curvature of the functions will be affected.
-		</p>
-		<p>
-			You can only click on the <em>pick function</em> button on the left side to select individual functions to compare to each other. Individual functions can be scaled independently from each other. But when comparing two functions you will observe that, depending on the function and the parameter <strong>k</strong>, one will grow much higher and faster no matter how the other function is scaled. Use the zoom slider (or mousewheel) in the bottom right corner to zoom out and observe the behavior for the functions for larger <strong>x</strong> values. 
-		</p>
-		<p>
-			<strong>In short: Affine transformations do not affect a functions general behavior for large input values.</strong>
-		</p>
+			For some functions (e.g. the exponential) transforming the input x will also affect the curvature. For other functions (e.g. the quadratic or power) transforming the input x will not affect the curvature. 
+		</p> 
+
+		<p> You can click on the <em>pick
+		function</em> button on the left side to select individual
+		functions to compare to each other. 
+</p><p>
+		Individual functions can be
+		scaled independently from each other. But when comparing two
+		functions you will observe that, depending on the function and the
+		parameter <strong>k</strong>, one will grow much higher and faster
+		no matter how the other functions is scaled vertically. Use the zoom slider
+		(or mousewheel) in the bottom right corner to zoom out and observe
+		the behavior for the functions for larger <strong>x</strong>
+		values. </p> <p> <strong>In short: Affine transformations do not
+		affect a functions general behavior for large input
+		values.</strong> </p> 
 	</details>
 
 	<p style:text-align="center">
