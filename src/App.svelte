@@ -554,7 +554,7 @@
 		</p>
 
 		<p>
-			For some functions (e.g. the exponential) transforming the input x will also affect the curvature. For other functions (e.g. the quadratic or power) transforming the input x will not affect the curvature. 
+			For some functions (e.g. the exponential) transforming the input x will also affect the general curvature. For other functions (e.g. the quadratic or power) transforming the input x will not affect the curvature significantly. For linear functions scaling the input has the exact same effect as scaling the output. 
 		</p> 
 
 		<p> You can click on the <em>pick
